@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { apiRequest } from "@/lib/api"
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
 const AUTH_TOKEN_KEY = "authToken"
 
 export default function RegisterPage() {
@@ -44,25 +44,24 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/register`, {
+      const response = await apiRequest("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, password_confirmation: confirmPassword }),
       })
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null)
-        setError(payload?.message || "Registration failed")
+        setError(payload?.message || payload?.data?.[0] || "Registration failed")
         return
       }
 
       const data = await response.json()
-      if (!data?.token) {
-        setError("Registration succeeded but no token returned")
+      if (data.status !== 1 || !data.data?.token) {
+        setError(data.message || "Registration succeeded but no token returned")
         return
       }
 
-      window.localStorage.setItem(AUTH_TOKEN_KEY, data.token)
+      window.localStorage.setItem(AUTH_TOKEN_KEY, data.data.token)
       router.push("/dashboard")
     } catch (err) {
       setError("Network error during registration")
@@ -72,10 +71,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Create your account</CardTitle>
+          <CardDescription>Join EventMaster to start managing your events</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={submitRegister}>
@@ -95,13 +95,13 @@ export default function RegisterPage() {
               <Label htmlFor="confirmPassword">Confirm password</Label>
               <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="********" />
             </div>
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Sign up"}
             </Button>
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
-              <a href="/login" className="text-sky-600 hover:text-sky-800">
+              <a href="/login" className="text-primary hover:text-primary/80">
                 Log in
               </a>
             </div>

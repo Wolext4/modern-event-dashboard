@@ -5,35 +5,80 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class ThemeController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user() ?? User::first();
+        $token = $request->bearerToken();
 
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+        if (!$token) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthorized",
+            ], 401);
         }
 
-        return response()->json(['theme' => $user->theme ?? 'system']);
+        $user = User::where('api_token', $token)->first();
+
+        if (!$user) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthorized",
+            ], 401);
+        }
+
+        return response()->json([
+            "status" => 1,
+            "message" => "Theme retrieved successfully",
+            "data" => [
+                "theme" => $user->theme ?? 'system'
+            ]
+        ]);
     }
 
     public function update(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $token = $request->bearerToken();
+
+        if (!$token) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthorized",
+            ], 401);
+        }
+
+        $user = User::where('api_token', $token)->first();
+
+        if (!$user) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Unauthorized",
+            ], 401);
+        }
+
+        $validator = Validator::make($request->all(), [
             'theme' => 'required|in:light,dark,system',
         ]);
 
-        $user = $request->user() ?? User::first();
-
-        if (!$user) {
-            return response()->json(['message' => 'User not found'], 404);
+        if ($validator->fails()) {
+            return response()->json([
+                "status" => 0,
+                "message" => "Validation failed",
+                "data" => $validator->errors()->all(),
+            ], 422);
         }
 
-        $user->theme = $validated['theme'];
+        $user->theme = $request->theme;
         $user->save();
 
-        return response()->json(['theme' => $user->theme]);
+        return response()->json([
+            "status" => 1,
+            "message" => "Theme updated successfully",
+            "data" => [
+                "theme" => $user->theme
+            ]
+        ]);
     }
 }

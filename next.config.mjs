@@ -6,6 +6,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Force clean builds
+  generateBuildId: () => 'build-' + Date.now(),
 }
 
 export default nextConfig

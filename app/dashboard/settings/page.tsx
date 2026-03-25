@@ -49,7 +49,6 @@ export default function SettingsPage() {
   }
 
   // Handle save button click
-  /*
   const handleSave = async () => {
     setIsSubmitting(true)
     try {
@@ -68,7 +67,6 @@ export default function SettingsPage() {
       setIsSubmitting(false)
     }
   }
-  */
 
   // Handle logout
   const handleLogout = async () => {

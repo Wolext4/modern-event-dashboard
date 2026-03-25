@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { createContext, useContext, useEffect, useState } from "react"
+import { apiRequest } from "@/lib/api"
 
 type Theme = "dark" | "light" | "system"
 
@@ -24,8 +25,6 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
-
 export function ThemeProvider({
   children,
   defaultTheme = "system",
@@ -36,14 +35,8 @@ export function ThemeProvider({
   useEffect(() => {
     const loadThemeFromBackend = async () => {
       try {
-        const token = typeof window !== "undefined" ? window.localStorage.getItem("authToken") : null
-        const response = await fetch(`${BACKEND_URL}/api/user/theme`, {
+        const response = await apiRequest("/api/user/theme", {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          credentials: "include",
         })
 
         if (!response.ok) {
@@ -52,8 +45,8 @@ export function ThemeProvider({
         }
 
         const data = await response.json()
-        if (data?.theme === "light" || data?.theme === "dark" || data?.theme === "system") {
-          setTheme(data.theme)
+        if (data.status === 1 && data.data?.theme && (data.data.theme === "light" || data.data.theme === "dark" || data.data.theme === "system")) {
+          setTheme(data.data.theme)
         } else {
           setTheme(defaultTheme)
         }
@@ -83,15 +76,8 @@ export function ThemeProvider({
   const setThemeAndPersist = (newTheme: Theme) => {
     setTheme(newTheme)
 
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("authToken") : null
-
-    fetch(`${BACKEND_URL}/api/user/theme`, {
+    apiRequest("/api/user/theme", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      credentials: "include",
       body: JSON.stringify({ theme: newTheme }),
     }).catch((error) => {
       console.warn("Unable to persist theme to backend", error)
