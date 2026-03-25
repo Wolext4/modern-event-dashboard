@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { CalendarIcon, ChevronDown, Filter, Plus, Search, SortAsc, SortDesc, CalendarX } from "lucide-react"
 import { motion } from "framer-motion"
@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Event } from "@/lib/types"
 
-// Sample data
-const events = [
+// Sample data (fallback for demo)
+const sampleEvents = [
   {
     id: 1,
     name: "Tech Conference 2025",
@@ -101,6 +102,8 @@ const events = [
 ]
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [filterType, setFilterType] = useState("all")
@@ -110,6 +113,31 @@ export default function EventsPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [sortByField, setSortByField] = useState("date")
   const [sortBy, setSortBy] = useState("")
+
+  useEffect(() => {
+    // Load events from database
+    const loadEvents = async () => {
+      try {
+        const userId = localStorage.getItem('userId') || 'demo-user'
+        const response = await fetch('/api/events', {
+          headers: {
+            'x-user-id': userId,
+          },
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setEvents(data)
+        }
+      } catch (error) {
+        console.error('Failed to load events:', error)
+        // Fallback to sample events for demo
+        setEvents(sampleEvents)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadEvents()
+  }, [])
 
   // Sort events based on the selected sort option
   const sortEvents = (events) => {
@@ -195,6 +223,55 @@ export default function EventsPage() {
       }
       return 0
     })
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
+          <div className="space-y-4">
+            <div className="h-64 bg-muted rounded"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Events</h1>
+            <p className="text-muted-foreground">Create and manage your events</p>
+          </div>
+          <Button asChild>
+            <Link href="/dashboard/events/create">
+              <Plus className="mr-2 h-4 w-4" />
+              New Event
+            </Link>
+          </Button>
+        </div>
+
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+            <div className="rounded-full bg-muted p-3">
+              <CalendarX className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-lg font-semibold">No events yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Create your first event to get started managing attendees, tickets, and schedules.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/dashboard/events/create">Create Your First Event</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-6">
