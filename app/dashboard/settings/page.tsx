@@ -1,10 +1,12 @@
+// Settings page with form storage integration
 "use client"
 
 import { Badge } from "@/components/ui/badge"
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Bell, CreditCard, Globe, Lock, Save, User } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Bell, CreditCard, Globe, Lock, Save, User, LogOut } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -18,25 +20,90 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
+import { apiRequest } from "@/lib/api"
+import { saveFormData, loadFormData, useAutoSave } from "@/lib/form-storage"
 
 export default function SettingsPage() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("account")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [profileData, setProfileData] = useState({
+    firstName: "John",
+    lastName: "Doe",
+    email: "admin@eventmaster.com",
+    phone: "+1 (555) 123-4567",
+    bio: "Event management professional with over 5 years of experience.",
+    jobTitle: "Event Manager",
+    company: "EventMaster Inc.",
+  })
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  // Auto-save hook for profile form
+  const { autoSave: autoSaveProfile, saveNow: saveProfileNow } = useAutoSave("dashboard/settings", "profile", 3000)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    toast({
-      title: "Settings saved",
-      description: "Your settings have been updated successfully.",
-    })
-
-    setIsSubmitting(false)
+  // Handle profile form changes
+  const handleProfileChange = (field: string, value: string) => {
+    const updatedData = { ...profileData, [field]: value }
+    setProfileData(updatedData)
+    autoSaveProfile(updatedData)
   }
+
+  // Handle save button click
+  /*
+  const handleSave = async () => {
+    setIsSubmitting(true)
+    try {
+      await saveProfileNow()
+      toast({
+        title: "Settings saved",
+        description: "Your profile settings have been saved successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  */
+
+  // Handle logout
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await apiRequest('/api/logout', {
+        method: 'POST',
+      })
+      // Clear local storage
+      localStorage.removeItem('auth_token')
+      // Redirect to login page
+      router.push('/login')
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
+  useEffect(() => {
+    // Load saved profile data
+    loadFormData("dashboard/settings", "profile").then((savedData) => {
+      if (savedData) {
+        setProfileData(savedData)
+      }
+    })
+  }, [])
 
   return (
     <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-6">
@@ -109,23 +176,37 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                           <Label htmlFor="firstName">First Name</Label>
-                          <Input id="firstName" defaultValue="John" />
+                          <Input
+                            id="firstName"
+                            value={profileData.firstName}
+                            onChange={(e) => handleProfileChange('firstName', e.target.value)}
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="lastName">Last Name</Label>
-                          <Input id="lastName" defaultValue="Doe" />
+                          <Input
+                            id="lastName"
+                            value={profileData.lastName}
+                            onChange={(e) => handleProfileChange('lastName', e.target.value)}
+                          />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email}
+                          onChange={(e) => handleProfileChange('email', e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="bio">Bio</Label>
                         <Textarea
                           id="bio"
                           placeholder="Tell us about yourself"
-                          defaultValue="Event manager with 5+ years of experience organizing tech conferences and workshops."
+                          value={profileData.bio}
+                          onChange={(e) => handleProfileChange('bio', e.target.value)}
                           className="min-h-32"
                         />
                       </div>
@@ -416,6 +497,45 @@ export default function SettingsPage() {
                   <Button variant="destructive">Sign Out of All Sessions</Button>
                 </CardFooter>
               </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Account Actions</CardTitle>
+                  <CardDescription>Manage your account security and access</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-md bg-destructive/10 p-4">
+                    <div className="flex items-center gap-3">
+                      <LogOut className="h-5 w-5 text-destructive" />
+                      <div>
+                        <h4 className="font-medium text-destructive">Sign Out</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Sign out of your account on this device. You'll need to sign in again to access your dashboard.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button
+                    variant="destructive"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                  >
+                    {isLoggingOut ? (
+                      <>
+                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                        Signing out...
+                      </>
+                    ) : (
+                      <>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign Out
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
             </TabsContent>
 
             <TabsContent value="billing" className="space-y-4">
@@ -660,3 +780,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+
