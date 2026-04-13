@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Calendar, Check, Clock, Download, Filter, Search, Ticket, User } from "lucide-react"
 import { motion } from "framer-motion"
@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
+import { loadUserStatus } from "@/lib/form-storage"
 // Sample activity data
 const activityData = [
   {
@@ -149,6 +149,16 @@ export default function ActivityPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [dateRange, setDateRange] = useState("all")
+  const [isNewUser, setIsNewUser] = useState(true)
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const status = await loadUserStatus()
+      setIsNewUser(!status || status.is_new)
+    }
+
+    loadStatus()
+  }, [])
 
   // Filter activities based on search term, active tab, and date range
   const filteredActivities = activityData.filter((activity) => {
@@ -188,6 +198,20 @@ export default function ActivityPage() {
       default:
         return <Clock className="h-4 w-4 text-muted-foreground" />
     }
+  }
+
+  if (isNewUser) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 rounded-full bg-primary/10 p-4">
+          <Ticket className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">No activity yet</h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md">
+          Your activity log will appear once you start adding events and tickets. Everything is stored in the database for your account.
+        </p>
+      </div>
+    )
   }
 
   return (

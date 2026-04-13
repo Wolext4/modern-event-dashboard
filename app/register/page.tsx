@@ -12,13 +12,15 @@ const AUTH_TOKEN_KEY = "authToken"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get("redirect") || "/dashboard"
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? window.localStorage.getItem("authToken") : null
     if (token) {
-      router.push("/dashboard")
+      router.push(redirect)
     }
-  }, [router])
+  }, [router, redirect])
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -62,6 +64,10 @@ export default function RegisterPage() {
       }
 
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.data.token)
+      window.localStorage.setItem(
+        "userProfile",
+        JSON.stringify({ name, email })
+      )
       router.push("/dashboard")
     } catch (err) {
       setError("Network error during registration")

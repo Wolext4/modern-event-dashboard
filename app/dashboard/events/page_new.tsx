@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { CalendarIcon, ChevronDown, Filter, Plus, Search, SortAsc, SortDesc } from "lucide-react"
 import { motion } from "framer-motion"
@@ -18,38 +18,59 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { loadFormData } from "@/lib/form-storage"
+
+const sampleEvents = [
+  {
+    id: 1,
+    name: "Tech Conference 2024",
+    date: "2024-03-15",
+    location: "San Francisco, CA",
+    status: "Confirmed",
+    type: "Conference",
+    attendees: 500,
+    revenue: "$25,000",
+  },
+  {
+    id: 2,
+    name: "Music Festival",
+    date: "2024-04-20",
+    location: "Austin, TX",
+    status: "Planning",
+    type: "Festival",
+    attendees: 2000,
+    revenue: "$50,000",
+  },
+  {
+    id: 3,
+    name: "Corporate Retreat",
+    date: "2024-05-10",
+    location: "Lake Tahoe, CA",
+    status: "Draft",
+    type: "Corporate",
+    attendees: 150,
+    revenue: "$15,000",
+  },
+  {
+    id: 4,
+    name: "Art Exhibition",
+    date: "2024-06-05",
+    location: "New York, NY",
+    status: "Confirmed",
+    type: "Exhibition",
+    attendees: 300,
+    revenue: "$12,000",
+  },
+]
 
 export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [filterType, setFilterType] = useState("all")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [sortByField, setSortByField] = useState("start_date")
-  const [events, setEvents] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const loadUserEvents = async () => {
-      try {
-        const savedEvents = await loadFormData("dashboard/events")
-        if (savedEvents && Object.keys(savedEvents).length > 0) {
-          setEvents(Object.values(savedEvents))
-        } else {
-          setEvents([])
-        }
-      } catch (error) {
-        console.error("Failed to load events:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadUserEvents()
-  }, [])
+  const [sortByField, setSortByField] = useState("date")
 
   // Filter and sort events
-  const filteredEvents = events
+  const filteredEvents = sampleEvents
     .filter((event) => {
       const matchesSearch =
         event.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,10 +90,10 @@ export default function EventsPage() {
       let aValue: any = a[sortByField as keyof typeof a]
       let bValue: any = b[sortByField as keyof typeof b]
 
-      if (sortByField === "start_date" || sortByField === "end_date") {
+      if (sortByField === "date") {
         aValue = new Date(aValue).getTime()
         bValue = new Date(bValue).getTime()
-      } else if (sortByField === "tickets_sold") {
+      } else if (sortByField === "attendees") {
         aValue = Number(aValue)
         bValue = Number(bValue)
       }
@@ -97,24 +118,14 @@ export default function EventsPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center p-6">
-        <p className="text-center text-sm text-muted-foreground">Loading your events...</p>
-      </div>
-    )
-  }
-
   return (
     <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       <div className="flex items-center justify-between space-y-2">
         <h2 className="text-3xl font-bold tracking-tight">Events</h2>
         <div className="flex items-center space-x-2">
-          <Button asChild>
-            <Link href="/dashboard/events/create">
-              <Plus className="mr-2 h-4 w-4" />
-              New Event
-            </Link>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            New Event
           </Button>
         </div>
       </div>
@@ -152,10 +163,9 @@ export default function EventsPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setFilterType("all")}>All Types</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("Conference")}>Conference</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Workshop")}>Workshop</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Seminar")}>Seminar</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType("Gala")}>Gala</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setFilterType("Festival")}>Festival</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("Corporate")}>Corporate</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setFilterType("Exhibition")}>Exhibition</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -170,11 +180,11 @@ export default function EventsPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Sort by</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { setSortByField("start_date"); setSortOrder("asc") }}>
-                  Start Date (Oldest first)
+                <DropdownMenuItem onClick={() => { setSortByField("date"); setSortOrder("asc") }}>
+                  Date (Oldest first)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setSortByField("start_date"); setSortOrder("desc") }}>
-                  Start Date (Newest first)
+                <DropdownMenuItem onClick={() => { setSortByField("date"); setSortOrder("desc") }}>
+                  Date (Newest first)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => { setSortByField("name"); setSortOrder("asc") }}>
                   Name (A-Z)
@@ -182,8 +192,11 @@ export default function EventsPage() {
                 <DropdownMenuItem onClick={() => { setSortByField("name"); setSortOrder("desc") }}>
                   Name (Z-A)
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => { setSortByField("tickets_sold"); setSortOrder("desc") }}>
-                  Tickets Sold (High to Low)
+                <DropdownMenuItem onClick={() => { setSortByField("attendees"); setSortOrder("desc") }}>
+                  Attendees (High to Low)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => { setSortByField("attendees"); setSortOrder("asc") }}>
+                  Attendees (Low to High)
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -195,10 +208,7 @@ export default function EventsPage() {
             <div className="flex flex-col items-center justify-center py-12">
               <CalendarIcon className="h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-semibold">No events found</h3>
-              <p className="text-muted-foreground">Try adjusting your search or create a new event.</p>
-              <Button asChild className="mt-4">
-                <Link href="/dashboard/events/create">Create Your First Event</Link>
-              </Button>
+              <p className="text-muted-foreground">Try adjusting your search or filter criteria.</p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -218,13 +228,13 @@ export default function EventsPage() {
                       <CardTitle className="text-lg">{event.name}</CardTitle>
                       <CardDescription className="flex items-center text-sm">
                         <CalendarIcon className="mr-1 h-4 w-4" />
-                        {new Date(event.start_date).toLocaleDateString()} • {event.location}
+                        {new Date(event.date).toLocaleDateString()} • {event.location}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>{event.tickets_sold || 0} tickets</span>
-                        <span className="font-medium text-foreground">${event.revenue || 0}</span>
+                        <span>{event.attendees} attendees</span>
+                        <span className="font-medium text-foreground">{event.revenue}</span>
                       </div>
                       <Button className="mt-4 w-full" variant="outline" asChild>
                         <Link href={`/dashboard/events/${event.id}`}>View Details</Link>

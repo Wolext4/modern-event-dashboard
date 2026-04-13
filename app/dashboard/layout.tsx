@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Bell, Calendar, Home, LayoutDashboard, LogOut, Menu, Settings, Ticket, User, Users } from "lucide-react"
@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout"
 
 interface NavItem {
   title: string
@@ -66,6 +67,9 @@ export default function DashboardLayout({
 }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  
+  // Initialize inactivity timeout hook
+  useInactivityTimeout()
 
   return (
     <div className="flex min-h-screen w-full bg-background">

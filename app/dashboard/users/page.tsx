@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   ArrowUpDown,
@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { loadUserStatus } from "@/lib/form-storage"
 
 // Sample user data
 const users = [
@@ -136,6 +137,16 @@ export default function UsersPage() {
   const [filterRole, setFilterRole] = useState("all")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [sortByFilter, setSortByFilter] = useState("name")
+  const [isNewUser, setIsNewUser] = useState(true)
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const status = await loadUserStatus()
+      setIsNewUser(!status || status.is_new)
+    }
+
+    loadStatus()
+  }, [])
 
   // Sort users based on the selected sort option
   const sortUsers = (users) => {
@@ -234,6 +245,20 @@ export default function UsersPage() {
       }
       return 0
     })
+
+  if (isNewUser) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 rounded-full bg-primary/10 p-4">
+          <Users className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">No users added yet</h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md">
+          Your user directory is empty. Invite team members or create your first account to start collaborating.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-6">

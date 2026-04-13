@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Calendar, Clock, MapPin, Plus, Save, Trash, Upload } from "lucide-react"
+import { ArrowLeft, Calendar, Clock, MapPin, Save } from "lucide-react"
 import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
@@ -14,23 +14,26 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
+import { saveFormData, markUserNotNew } from "@/lib/form-storage"
+import { useFormLogger } from "@/hooks/use-form-logger"
 
 export default function CreateEventPage() {
   const router = useRouter()
+  const { logSubmission } = useFormLogger()
   const [activeTab, setActiveTab] = useState("basic")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
+    id: `event-${Date.now()}`,
     name: "",
     description: "",
-    startDate: "",
-    endDate: "",
-    startTime: "",
-    endTime: "",
+    start_date: "",
+    end_date: "",
+    start_time: "",
+    end_time: "",
     location: "",
     address: "",
     type: "Conference",
@@ -38,6 +41,8 @@ export default function CreateEventPage() {
     capacity: "",
     organizer: "",
     image: null,
+    revenue: "0",
+    tickets_sold: "0",
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -53,16 +58,45 @@ export default function CreateEventPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const eventKey = `event-${Date.now()}`
+      const eventDataToSave = {
+        ...formData,
+        id: eventKey,
+        created_at: new Date().toISOString(),
+        revenue: parseFloat(formData.revenue) || 0,
+        tickets_sold: parseInt(formData.tickets_sold) || 0,
+      }
 
-    toast({
-      title: "Event created",
-      description: `${formData.name} has been created successfully.`,
-    })
+      const saved = await saveFormData("dashboard/events", eventKey, eventDataToSave, true)
 
-    setIsSubmitting(false)
-    router.push("/dashboard/events")
+      await markUserNotNew()
+
+      // Log form submission
+      await logSubmission({
+        formType: "event_create",
+        formName: "Create New Event",
+        submittedData: formData,
+      })
+
+      if (saved.success) {
+        toast({
+          title: "Event created",
+          description: `${formData.name} has been created successfully.`,
+        })
+        router.push("/dashboard/events")
+      } else {
+        throw new Error("Failed to save event")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Unable to save the event. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -167,14 +201,14 @@ export default function CreateEventPage() {
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
-                          <Label htmlFor="startDate">Start Date</Label>
+                          <Label htmlFor="start_date">Start Date</Label>
                           <div className="flex items-center">
                             <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              id="startDate"
-                              name="startDate"
+                              id="start_date"
+                              name="start_date"
                               type="date"
-                              value={formData.startDate}
+                              value={formData.start_date}
                               onChange={handleChange}
                               required
                             />
@@ -182,14 +216,14 @@ export default function CreateEventPage() {
                         </div>
 
                         <div className="grid gap-2">
-                          <Label htmlFor="endDate">End Date</Label>
+                          <Label htmlFor="end_date">End Date</Label>
                           <div className="flex items-center">
                             <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              id="endDate"
-                              name="endDate"
+                              id="end_date"
+                              name="end_date"
                               type="date"
-                              value={formData.endDate}
+                              value={formData.end_date}
                               onChange={handleChange}
                               required
                             />
@@ -199,14 +233,14 @@ export default function CreateEventPage() {
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="grid gap-2">
-                          <Label htmlFor="startTime">Start Time</Label>
+                          <Label htmlFor="start_time">Start Time</Label>
                           <div className="flex items-center">
                             <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              id="startTime"
-                              name="startTime"
+                              id="start_time"
+                              name="start_time"
                               type="time"
-                              value={formData.startTime}
+                              value={formData.start_time}
                               onChange={handleChange}
                               required
                             />
@@ -214,14 +248,14 @@ export default function CreateEventPage() {
                         </div>
 
                         <div className="grid gap-2">
-                          <Label htmlFor="endTime">End Time</Label>
+                          <Label htmlFor="end_time">End Time</Label>
                           <div className="flex items-center">
                             <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                             <Input
-                              id="endTime"
-                              name="endTime"
+                              id="end_time"
+                              name="end_time"
                               type="time"
-                              value={formData.endTime}
+                              value={formData.end_time}
                               onChange={handleChange}
                               required
                             />
@@ -272,81 +306,32 @@ export default function CreateEventPage() {
                   </TabsContent>
 
                   <TabsContent value="tickets" className="mt-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-medium">Ticket Types</h3>
-                      <Button type="button" size="sm">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Ticket Type
-                      </Button>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="tickets_sold">Tickets Sold</Label>
+                        <Input
+                          id="tickets_sold"
+                          name="tickets_sold"
+                          type="number"
+                          placeholder="Number of tickets sold"
+                          value={formData.tickets_sold}
+                          onChange={handleChange}
+                        />
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label htmlFor="revenue">Revenue</Label>
+                        <Input
+                          id="revenue"
+                          name="revenue"
+                          type="number"
+                          step="0.01"
+                          placeholder="Total revenue"
+                          value={formData.revenue}
+                          onChange={handleChange}
+                        />
+                      </div>
                     </div>
-
-                    <Card>
-                      <CardHeader className="p-4">
-                        <CardTitle className="text-base">Early Bird Ticket</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <div className="grid gap-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="earlyBirdPrice">Price</Label>
-                              <Input id="earlyBirdPrice" placeholder="$0.00" type="number" step="0.01" />
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="earlyBirdQuantity">Quantity</Label>
-                              <Input id="earlyBirdQuantity" placeholder="Number of tickets" type="number" />
-                            </div>
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="earlyBirdDescription">Description</Label>
-                            <Textarea
-                              id="earlyBirdDescription"
-                              placeholder="Describe this ticket type"
-                              className="h-20"
-                            />
-                          </div>
-                          <div className="flex justify-end">
-                            <Button variant="destructive" size="sm" type="button">
-                              <Trash className="mr-2 h-4 w-4" />
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader className="p-4">
-                        <CardTitle className="text-base">Regular Ticket</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <div className="grid gap-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                              <Label htmlFor="regularPrice">Price</Label>
-                              <Input id="regularPrice" placeholder="$0.00" type="number" step="0.01" />
-                            </div>
-                            <div className="grid gap-2">
-                              <Label htmlFor="regularQuantity">Quantity</Label>
-                              <Input id="regularQuantity" placeholder="Number of tickets" type="number" />
-                            </div>
-                          </div>
-                          <div className="grid gap-2">
-                            <Label htmlFor="regularDescription">Description</Label>
-                            <Textarea
-                              id="regularDescription"
-                              placeholder="Describe this ticket type"
-                              className="h-20"
-                            />
-                          </div>
-                          <div className="flex justify-end">
-                            <Button variant="destructive" size="sm" type="button">
-                              <Trash className="mr-2 h-4 w-4" />
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
                   </TabsContent>
 
                   <TabsContent value="publish" className="mt-4 space-y-4">
@@ -359,149 +344,39 @@ export default function CreateEventPage() {
                         >
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="Draft" id="draft" />
-                            <Label htmlFor="draft">Draft - Save but don't publish yet</Label>
+                            <Label htmlFor="draft" className="font-normal cursor-pointer">
+                              Draft
+                            </Label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Published" id="published" />
-                            <Label htmlFor="published">Published - Make event visible to the public</Label>
+                            <RadioGroupItem value="Planning" id="planning" />
+                            <Label htmlFor="planning" className="font-normal cursor-pointer">
+                              Planning
+                            </Label>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Private" id="private" />
-                            <Label htmlFor="private">Private - Only visible with a direct link</Label>
+                            <RadioGroupItem value="Confirmed" id="confirmed" />
+                            <Label htmlFor="confirmed" className="font-normal cursor-pointer">
+                              Confirmed
+                            </Label>
                           </div>
                         </RadioGroup>
-                      </div>
-
-                      <Separator />
-
-                      <div className="grid gap-2">
-                        <Label>Event Image</Label>
-                        <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8">
-                          <div className="flex flex-col items-center justify-center space-y-2 text-center">
-                            <Upload className="h-10 w-10 text-muted-foreground" />
-                            <div className="flex flex-col space-y-1">
-                              <p className="text-sm font-medium">Drag & drop an image here</p>
-                              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP, up to 10MB</p>
-                            </div>
-                            <Button type="button" variant="outline" size="sm">
-                              Browse Files
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="grid gap-2">
-                        <Label>Confirmation</Label>
-                        <p className="text-sm text-muted-foreground">
-                          By publishing this event, you confirm that all information is correct and that you have the
-                          right to publish this event.
-                        </p>
                       </div>
                     </div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button variant="outline" type="button" asChild>
+                <Button variant="outline" asChild>
                   <Link href="/dashboard/events">Cancel</Link>
                 </Button>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => {
-                      toast({
-                        title: "Event saved as draft",
-                        description: "Your event has been saved as a draft.",
-                      })
-                    }}
-                  >
-                    Save as Draft
-                  </Button>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                        Creating...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Create Event
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <Button type="submit" disabled={isSubmitting}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {isSubmitting ? "Creating..." : "Create Event"}
+                </Button>
               </CardFooter>
             </Card>
           </motion.div>
-
-          <div className="md:col-span-2">
-            <div className="space-y-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tips</CardTitle>
-                    <CardDescription>Helpful information for creating a successful event</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Event Name</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Choose a clear, descriptive name that tells attendees what your event is about.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Description</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Include key details like speakers, activities, and what attendees will gain from your event.
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Tickets</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Offer different ticket types to appeal to different audiences and budgets.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Preview</CardTitle>
-                    <CardDescription>How your event will appear to attendees</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-md border">
-                      <div className="aspect-video w-full bg-muted"></div>
-                      <div className="p-4">
-                        <h3 className="font-medium">{formData.name || "Event Name"}</h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {formData.startDate ? new Date(formData.startDate).toLocaleDateString() : "Date"} •{" "}
-                          {formData.location || "Location"}
-                        </p>
-                        <p className="mt-2 text-sm line-clamp-2">
-                          {formData.description || "Event description will appear here..."}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-          </div>
         </div>
       </form>
     </div>

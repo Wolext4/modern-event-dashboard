@@ -1,6 +1,7 @@
-"use client"
+﻿"use client"
 
-import React, { useEffect } from "react"
+import { useEffect } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,9 +11,11 @@ export default function LandingPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("authToken") : null
+    if (typeof window === "undefined") return
+
+    const token = window.localStorage.getItem("authToken")
     if (token) {
-      router.push("/dashboard")
+      router.replace("/dashboard")
     }
   }, [router])
 
@@ -26,11 +29,11 @@ export default function LandingPage() {
             <h1 className="text-xl font-bold">EventMaster</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => router.push("/login")}>
-              Sign in
+            <Button variant="ghost" asChild>
+              <Link href="/login">Sign in</Link>
             </Button>
-            <Button onClick={() => router.push("/register")}>
-              Get started
+            <Button asChild>
+              <Link href="/register">Get started</Link>
             </Button>
           </div>
         </div>
@@ -46,11 +49,13 @@ export default function LandingPage() {
             EventMaster is the complete platform for event planning, ticketing, and attendee management. From small meetups to large conferences, we've got you covered.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <Button size="lg" onClick={() => router.push("/register")}>
-              Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+            <Button size="lg" asChild>
+              <Link href="/register">
+                Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
-            <Button size="lg" variant="outline" onClick={() => router.push("/dashboard")}>
-              Watch Demo
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/demo">Watch Demo</Link>
             </Button>
           </div>
         </div>
@@ -157,8 +162,8 @@ export default function LandingPage() {
           <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
             Join hundreds of event organizers who trust EventMaster to run their events.
           </p>
-          <Button size="lg" onClick={() => router.push("/register")}>
-            Create Your Free Account
+          <Button size="lg" asChild>
+            <Link href="/register">Create Your Free Account</Link>
           </Button>
         </div>
       </section>
@@ -171,7 +176,7 @@ export default function LandingPage() {
               <Calendar className="h-5 w-5 text-sky-400" />
               <span className="font-semibold">EventMaster</span>
             </div>
-            <p className="text-sm text-muted-foreground">© 2025 EventMaster. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">Copyright 2025 EventMaster. All rights reserved.</p>
           </div>
         </div>
       </footer>

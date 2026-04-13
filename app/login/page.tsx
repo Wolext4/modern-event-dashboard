@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import React, { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,13 +12,8 @@ const AUTH_TOKEN_KEY = "authToken"
 
 export default function LoginPage() {
   const router = useRouter()
-
-  useEffect(() => {
-    const token = typeof window !== "undefined" ? window.localStorage.getItem("authToken") : null
-    if (token) {
-      router.push("/dashboard")
-    }
-  }, [router])
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get("redirect") || "/dashboard"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -55,7 +50,7 @@ export default function LoginPage() {
       }
 
       window.localStorage.setItem(AUTH_TOKEN_KEY, data.data.token)
-      router.push("/dashboard")
+      router.push(redirect)
     } catch (err) {
       setError("Network error during login")
     } finally {

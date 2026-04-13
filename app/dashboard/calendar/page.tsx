@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin } from "lucide-react"
 import { motion } from "framer-motion"
@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "@/components/ui/use-toast"
+import { loadFormData, loadUserStatus } from "@/lib/form-storage"
 
 // Sample events data
 const events = [
@@ -111,7 +112,30 @@ export default function CalendarPage() {
     location: "",
     type: "Meeting",
   })
-  const [allEvents, setAllEvents] = useState(events)
+  const [allEvents, setAllEvents] = useState<any[]>([])
+  const [isNewUser, setIsNewUser] = useState(true)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadData = async () => {
+      const status = await loadUserStatus()
+      if (!status || status.is_new) {
+        setIsNewUser(true)
+      } else {
+        setIsNewUser(false)
+      }
+
+      const savedEvents = await loadFormData("dashboard/events")
+      if (savedEvents && Object.keys(savedEvents).length > 0) {
+        setAllEvents(Object.values(savedEvents))
+        setIsNewUser(false)
+      }
+
+      setLoading(false)
+    }
+
+    loadData()
+  }, [])
 
   const currentYear = currentDate.getFullYear()
   const currentMonth = currentDate.getMonth()
@@ -190,6 +214,31 @@ export default function CalendarPage() {
   const openAddEventDialog = (date: string) => {
     setSelectedDate(date)
     setIsAddingEvent(true)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center p-6">
+        <p className="text-center text-sm text-muted-foreground">Loading your calendar data...</p>
+      </div>
+    )
+  }
+
+  if (isNewUser) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 rounded-full bg-primary/10 p-4">
+          <MapPin className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">Your calendar is empty</h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md">
+          No calendar events exist yet. Create your first event to populate your schedule and keep everything in the database.
+        </p>
+        <Button variant="outline" className="mt-6" asChild>
+          <Link href="/dashboard/events/create">Create Event</Link>
+        </Button>
+      </div>
+    )
   }
 
   return (

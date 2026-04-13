@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowUpDown, Download, Filter, Plus, Search, Ticket, SortAsc, SortDesc } from "lucide-react"
 import { motion } from "framer-motion"
@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { loadUserStatus } from "@/lib/form-storage"
 
 // Sample ticket data
 const tickets = [
@@ -165,6 +166,16 @@ export default function TicketsPage() {
   const [filterStatus, setFilterStatus] = useState("all")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [sortByState, setSortByState] = useState("date")
+  const [isNewUser, setIsNewUser] = useState(true)
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const status = await loadUserStatus()
+      setIsNewUser(!status || status.is_new)
+    }
+
+    loadStatus()
+  }, [])
 
   // Sort tickets based on the selected sort option
   const sortTickets = (tickets) => {
@@ -258,6 +269,20 @@ export default function TicketsPage() {
       }
       return 0
     })
+
+  if (isNewUser) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 rounded-full bg-primary/10 p-4">
+          <Ticket className="h-8 w-8 text-primary" />
+        </div>
+        <h1 className="text-2xl font-bold tracking-tight">No tickets yet</h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md">
+          Your ticket dashboard is empty until you create tickets for your events. All ticket data is saved to the database.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-6">

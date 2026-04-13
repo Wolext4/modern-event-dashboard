@@ -43,8 +43,8 @@ class AuthController extends Controller
             'last_updated' => now()
         ]);
 
-        // Sanctum personal access token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Sanctum personal access token with 1 hour expiration
+        $token = $user->createToken('auth_token', ['*'], now()->addHours(1))->plainTextToken;
 
         return response()->json([
             "status" => 1,
@@ -80,9 +80,9 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Revoke previous tokens and issue fresh token
+        // Revoke previous tokens and issue fresh token with 1 hour expiration
         $user->tokens()->delete();
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $token = $user->createToken('auth_token', ['*'], now()->addHours(1))->plainTextToken;
 
         return response()->json([
             "status" => 1,

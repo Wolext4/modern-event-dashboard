@@ -22,20 +22,22 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "@/components/ui/use-toast"
 import { apiRequest } from "@/lib/api"
 import { saveFormData, loadFormData, useAutoSave } from "@/lib/form-storage"
+import { useFormLogger } from "@/hooks/use-form-logger"
 
 export default function SettingsPage() {
   const router = useRouter()
+  const { logSubmission } = useFormLogger()
   const [activeTab, setActiveTab] = useState("account")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [profileData, setProfileData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "admin@eventmaster.com",
-    phone: "+1 (555) 123-4567",
-    bio: "Event management professional with over 5 years of experience.",
-    jobTitle: "Event Manager",
-    company: "EventMaster Inc.",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    bio: "",
+    jobTitle: "",
+    company: "",
   })
 
   // Auto-save hook for profile form
@@ -53,6 +55,14 @@ export default function SettingsPage() {
     setIsSubmitting(true)
     try {
       await saveProfileNow()
+      
+      // Log form submission
+      await logSubmission({
+        formType: "profile_update",
+        formName: "Update Profile Settings",
+        submittedData: profileData,
+      })
+      
       toast({
         title: "Settings saved",
         description: "Your profile settings have been saved successfully.",
@@ -76,9 +86,10 @@ export default function SettingsPage() {
         method: 'POST',
       })
       // Clear local storage
-      localStorage.removeItem('auth_token')
-      // Redirect to login page
-      router.push('/login')
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('userProfile')
+      // Redirect to login page in top-level frame
+      window.location.href = '/login'
       toast({
         title: "Signed out",
         description: "You have been successfully signed out.",
@@ -236,7 +247,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" />
+                    <Input id="phone" type="tel" defaultValue="" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
@@ -249,20 +260,20 @@ export default function SettingsPage() {
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
                       <Label htmlFor="city">City</Label>
-                      <Input id="city" defaultValue="San Francisco" />
+                      <Input id="city" defaultValue="" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="state">State</Label>
-                      <Input id="state" defaultValue="CA" />
+                      <Input id="state" defaultValue="" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zipCode">Zip Code</Label>
-                      <Input id="zipCode" defaultValue="94105" />
+                      <Input id="zipCode" defaultValue="" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
-                    <Select defaultValue="us">
+                    <Select>
                       <SelectTrigger id="country">
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
@@ -676,18 +687,18 @@ export default function SettingsPage() {
                     <div className="flex-1 space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="org-name">Organization Name</Label>
-                        <Input id="org-name" defaultValue="EventMaster Inc." />
+                        <Input id="org-name" defaultValue="" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="org-website">Website</Label>
-                        <Input id="org-website" defaultValue="https://eventmaster.example.com" />
+                        <Input id="org-website" defaultValue="" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="org-description">Description</Label>
                         <Textarea
                           id="org-description"
                           placeholder="Describe your organization"
-                          defaultValue="EventMaster is a leading event management platform for professional conferences, workshops, and corporate events."
+                          defaultValue=""
                           className="min-h-32"
                         />
                       </div>

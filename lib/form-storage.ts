@@ -96,6 +96,23 @@ export async function deleteFormData(
   }
 }
 
+export async function loadUserStatus(): Promise<{ is_new: boolean } | null> {
+  const result = await loadFormData("user_status", "is_new_user")
+  if (result && typeof result.is_new === "boolean") {
+    return { is_new: result.is_new }
+  }
+  return null
+}
+
+export async function markUserNotNew(): Promise<boolean> {
+  const response = await saveFormData("user_status", "is_new_user", { is_new: false }, true)
+  return response.success
+}
+
+export function hasPageData(page: string): Promise<boolean> {
+  return loadFormData(page).then((data) => !!data && Object.keys(data).length > 0)
+}
+
 /**
  * Auto-save form data with debouncing
  */

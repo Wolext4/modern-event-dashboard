@@ -12,12 +12,18 @@ export default function LogoutPage() {
   const [countdown, setCountdown] = useState(3)
 
   useEffect(() => {
+    // Clear authentication data immediately
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("authToken")
+      window.localStorage.removeItem("userProfile")
+    }
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
           // Redirect to login page after countdown
-          router.push("/")
+          router.push("/login")
           return 0
         }
         return prev - 1

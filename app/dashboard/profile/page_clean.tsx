@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Check, Pencil } from "lucide-react"
 
@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { useFormLogger } from "@/hooks/use-form-logger"
 
 const sampleProfileData = {
   name: "John Doe",
@@ -23,29 +22,8 @@ const sampleProfileData = {
 }
 
 export default function ProfilePage() {
-  const { logSubmission } = useFormLogger()
   const [isEditing, setIsEditing] = useState(false)
-  const [savedProfile, setSavedProfile] = useState(sampleProfileData)
   const [profileData, setProfileData] = useState(sampleProfileData)
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const storedProfile = window.localStorage.getItem("userProfile")
-    if (storedProfile) {
-      try {
-        const parsed = JSON.parse(storedProfile)
-        const loadedProfile = {
-          ...sampleProfileData,
-          ...parsed,
-        }
-        setSavedProfile(loadedProfile)
-        setProfileData(loadedProfile)
-      } catch (error) {
-        console.error("Failed to load stored profile:", error)
-      }
-    }
-  }, [])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -55,23 +33,13 @@ export default function ProfilePage() {
     }))
   }
 
-  const handleSave = async () => {
+  const handleSave = () => {
     setIsEditing(false)
-    setSavedProfile(profileData)
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("userProfile", JSON.stringify(profileData))
-    }
-    
-    // Log form submission
-    await logSubmission({
-      formType: "profile_edit",
-      formName: "Edit Profile",
-      submittedData: profileData,
-    })
+    // In a real app, this would save to the backend
   }
 
   const handleCancel = () => {
-    setProfileData(savedProfile)
+    setProfileData(sampleProfileData)
     setIsEditing(false)
   }
 
